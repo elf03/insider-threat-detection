@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İç Tehdit Tespit Sistemi | AI Destekli Kullanıcı Davranış Analizi</title>
+  <meta name="description" content="Yapay Zeka Destekli İç Tehdit Tespit Sistemi - Isolation Forest ve Autoencoder tabanlı anomali tespiti ile False Positive yorgunluğunu azaltın." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2"/>
+            <path d="M10 16 L14 20 L22 12" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#00d2ff"/>
+                <stop offset="100%" style="stop-color:#7b2ff7"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">İç Tehdit Tespit Sistemi</h1>
+          <p class="header-subtitle">Yapay Zeka Destekli Kullanıcı Davranış Analizi</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-blue">Isolation Forest</span>
+        <span class="badge badge-purple">Autoencoder</span>
+        <span class="badge badge-green" id="status-badge">● Canlı Analiz</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DATASET INFO BANNER -->
+    <div class="info-banner">
+      <div class="info-icon">📊</div>
+      <div class="info-text">
+        <strong>Veri Kaynağı:</strong> Synthetic Financial Datasets For Fraud Detection (PaySim) — 
+        <a href="https://www.kaggle.com/datasets/ealaxi/paysim1/data" target="_blank" class="info-link">
+          kaggle.com/datasets/ealaxi/paysim1 ↗
+        </a>
+        — Kullanıcı davranış verisine (giriş saatleri, dosya erişimleri, veri aktarım boyutları) dönüştürüldü.
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <section class="kpi-grid" id="kpi-section">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-value" id="kpi-users">—</div>
+        <div class="kpi-label">Toplam Kullanıcı</div>
+      </div>
+      <div class="kpi-card kpi-orange">
+        <div class="kpi-icon">⚠️</div>
+        <div class="kpi-value" id="kpi-anomalies">—</div>
+        <div class="kpi-label">Tespit Edilen Anomali</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-value" id="kpi-rate">—</div>
+        <div class="kpi-label">Anomali Oranı</div>
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">🕵️</div>
+        <div class="kpi-value" id="kpi-malicious">—</div>
+        <div class="kpi-label">Riskli Kullanıcı</div>
+      </div>
+    </section>
+
+    <!-- MODEL METRİKLERİ -->
+    <section class="section">
+      <h2 class="section-title">Model Performans Metrikleri</h2>
+      <div class="metrics-grid">
+        <!-- Isolation Forest -->
+        <div class="metrics-card card-blue">
+          <div class="metrics-header">
+            <span class="metrics-model-name">🌲 Isolation Forest</span>
+            <span class="metrics-badge">Unsupervised</span>
+          </div>
+          <div class="metrics-body">
+            <div class="metric-row">
+              <span class="metric-label">Precision</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar" id="if-prec-bar"></div>
+              </div>
+              <span class="metric-val" id="if-prec">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Recall</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar" id="if-rec-bar"></div>
+              </div>
+              <span class="metric-val" id="if-rec">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">F1-Score</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar" id="if-f1-bar"></div>
+              </div>
+              <span class="metric-val" id="if-f1">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">ROC-AUC</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-auc" id="if-auc-bar"></div>
+              </div>
+              <span class="metric-val" id="if-auc">—</span>
+            </div>
+            <div class="metric-row metric-fpr">
+              <span class="metric-label">⚠ FPR</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-fpr" id="if-fpr-bar"></div>
+              </div>
+              <span class="metric-val fpr-val" id="if-fpr">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Autoencoder -->
+        <div class="metrics-card card-purple">
+          <div class="metrics-header">
+            <span class="metrics-model-name">🧠 Autoencoder</span>
+            <span class="metrics-badge">Deep Learning</span>
+          </div>
+          <div class="metrics-body">
+            <div class="metric-row">
+              <span class="metric-label">Precision</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-purple" id="ae-prec-bar"></div>
+              </div>
+              <span class="metric-val" id="ae-prec">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Recall</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-purple" id="ae-rec-bar"></div>
+              </div>
+              <span class="metric-val" id="ae-rec">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">F1-Score</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-purple" id="ae-f1-bar"></div>
+              </div>
+              <span class="metric-val" id="ae-f1">—</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">ROC-AUC</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-purple-auc" id="ae-auc-bar"></div>
+              </div>
+              <span class="metric-val" id="ae-auc">—</span>
+            </div>
+            <div class="metric-row metric-fpr">
+              <span class="metric-label">⚠ FPR</span>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar metric-bar-fpr" id="ae-fpr-bar"></div>
+              </div>
+              <span class="metric-val fpr-val" id="ae-fpr">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3 class="chart-title">📈 Anomali Skoru Zaman Serisi</h3>
+        <div class="chart-wrap">
+          <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">🕐 Saatlik Aktivite Dağılımı</h3>
+        <div class="chart-wrap">
+          <canvas id="hourlyChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="charts-row">
+      <div class="chart-card chart-card-wide">
+        <h3 class="chart-title">⚖️ False Positive Karşılaştırması — Kongre Bildirisi Odak Noktası</h3>
+        <p class="chart-subtitle">
+          Kural tabanlı alarm sistemleri yüksek False Positive oranı üretirken, 
+          YZ tabanlı davranışsal anomali tespiti bu oranı belirgin şekilde azaltmaktadır.
+        </p>
+        <div class="chart-wrap chart-wrap-tall">
+          <canvas id="fpCompareChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">🏆 F1-Score Karşılaştırması</h3>
+        <div class="chart-wrap">
+          <canvas id="f1Chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- EN RİSKLİ KULLANICLAR -->
+    <section class="section">
+      <h2 class="section-title">🎯 Yüksek Riskli Kullanıcı Profilleri</h2>
+      <p class="section-subtitle">
+        Sistemin öğrendiği normal davranış profilinden en çok sapan kullanıcılar.
+        Bu kullanıcılar sızdırılmış hesap veya kötü niyetli çalışan adaylarıdır.
+      </p>
+      <div class="table-wrap">
+        <table class="risk-table" id="users-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kullanıcı ID</th>
+              <th>Anomali Oranı</th>
+              <th>Ort. Veri Hacmi (MB)</th>
+              <th>Toplam Anomali</th>
+              <th>Risk Seviyesi</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="6" class="loading-cell">Yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- BEKLENEN SONUÇ KARTI -->
+    <section class="section">
+      <h2 class="section-title">📋 Proje Beklenen Sonuçları</h2>
+      <div class="expected-results-grid">
+        <div class="result-card">
+          <div class="result-icon">✅</div>
+          <h3>Normal Profil Öğrenme</h3>
+          <p>
+            Isolation Forest ve Autoencoder modelleri, her kullanıcının 
+            <strong>normal davranış profilini</strong> otomatik olarak öğrenir.
+            Giriş saatleri, veri transfer boyutları ve kaynak erişim paternleri 
+            temel alınarak bireysel profiller oluşturulur.
+          </p>
+        </div>
+        <div class="result-card">
+          <div class="result-icon">🔍</div>
+          <h3>Yüksek Doğrulukla Sızıntı Tespiti</h3>
+          <p>
+            Nadir rastlanan veri sızıntısı paternleri (DATA_EXFILTRATION, 
+            PRIVILEGE_ABUSE, CREDENTIAL_THEFT) <strong>yüksek Recall değeri</strong> 
+            ile tespit edilmektedir. Kural tabanlı sistemlere kıyasla 
+            çok daha az yanlış alarm üretilmektedir.
+          </p>
+        </div>
+        <div class="result-card result-card-highlight">
+          <div class="result-icon">⚡</div>
+          <h3>False Positive Yorgunluğunun Azaltılması</h3>
+          <p>
+            <strong>Kongre bildirisi odak noktası:</strong> Kurumsal ağlarda kural 
+            tabanlı SIEM sistemlerinin ürettiği %60-70 oranındaki yanlış pozitif 
+            alarmlar, YZ tabanlı davranışsal anomali tespiti ile 
+            <strong>%15-20 seviyesine indirilmektedir.</strong>
+            Bu bulgu, güvenlik analistlerinin alarm yorgunluğunu büyük ölçüde azaltır.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MİMARİ DİYAGRAMI -->
+    <section class="section">
+      <h2 class="section-title">🏗️ Sistem Mimarisi</h2>
+      <div class="arch-diagram">
+        <div class="arch-step">
+          <div class="arch-icon">📊</div>
+          <div class="arch-label">PaySim Veri Seti</div>
+          <div class="arch-sub">Kaggle Synthetic Dataset</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-step">
+          <div class="arch-icon">⚙️</div>
+          <div class="arch-label">Özellik Mühendisliği</div>
+          <div class="arch-sub">Z-score, Rolling Stats, Time Features</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-step arch-step-split">
+          <div class="arch-step-inner">
+            <div class="arch-icon">🌲</div>
+            <div class="arch-label">Isolation Forest</div>
+            <div class="arch-sub">n=200, cont=0.02</div>
+          </div>
+          <div class="arch-sep">+</div>
+          <div class="arch-step-inner">
+            <div class="arch-icon">🧠</div>
+            <div class="arch-label">Autoencoder</div>
+            <div class="arch-sub">64→32→16→32→64</div>
+          </div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-step">
+          <div class="arch-icon">🚨</div>
+          <div class="arch-label">Anomali Alarmı</div>
+          <div class="arch-sub">Düşük FPR, Yüksek Recall</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>Yapay Zeka ve Siber Güvenlik Dersi — Kullanıcı Davranış Analizi ile Yapay Zeka Destekli İç Tehdit Tespiti</p>
+    <p>Veri: <a href="https://www.kaggle.com/datasets/ealaxi/paysim1/data" target="_blank">PaySim (Kaggle)</a> | Modeller: Isolation Forest + Autoencoder</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
