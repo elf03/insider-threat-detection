@@ -206,46 +206,122 @@ def plot_confusion_matrices(y_test: np.ndarray, if_results: Dict, ae_results: Di
 # ─────────────────────────────────────────────────────────────
 # 5. False Positive Karşılaştırması (Kongre Bildirisi Odak)
 # ─────────────────────────────────────────────────────────────
+
+
 def plot_false_positive_comparison(comparison_df: pd.DataFrame) -> str:
-    fig, axes = plt.subplots(1, 2, figsize=(14, 7), facecolor="#0f1923")
-    fig.suptitle(
-        "Kural Tabanlı vs. Yapay Zeka Tabanlı Anomali Tespiti\n"
-        "Kongre Bildirisi: False Positive Yorgunluğunun Azaltılması",
-        color="white", fontsize=13, fontweight="bold"
+    fig, axes = plt.subplots(
+        1, 2, figsize=(15, 7), facecolor="#0f1923"
     )
 
-    methods = comparison_df["Yöntem"].tolist()
-    bar_colors = [COLORS["rule"], COLORS["if"], COLORS["ae"]]
+    df = comparison_df.copy()
 
-    # (1) FPR karşılaştırma
+    # Yöntem isimlerini farklı sütunlardan birleştir.
+    method = pd.Series(index=df.index, dtype="object")
+
+    for col in ["Yöntem", "YÃ¶ntem"]:
+        if col in df.columns:
+            method = method.combine_first(df[col])
+
+    # Yanlış alarm oranlarını birleştir.
+    fpr = pd.Series(np.nan, index=df.index, dtype="float64")
+
+    if "False Positive Rate" in df.columns:
+        fpr = pd.to_numeric(
+            df["False Positive Rate"], errors="coerce"
+        )
+
+    if "Yanlış Alarm Oranı (%)" in df.columns:
+        percent_fpr = pd.to_numeric(
+            df["Yanlış Alarm Oranı (%)"], errors="coerce"
+        ) / 100
+
+        fpr = fpr.combine_first(percent_fpr)
+
+    # F1 değerlerini al.
+    f1 = pd.to_numeric(
+        df["F1-Score"], errors="coerce"
+    )
+
+    plot_df = pd.DataFrame({
+        "method": method,
+        "fpr": fpr,
+        "f1": f1
+    })
+
+    plot_df = plot_df.dropna(subset=["method"])
+    plot_df["method"] = plot_df["method"].astype(str)
+
+    if plot_df.empty:
+        plt.close(fig)
+        raise ValueError("Grafik için geçerli model adı bulunamadı.")
+
+    methods = plot_df["method"].tolist()
+    colors = [
+        COLORS["rule"],
+        COLORS["if"],
+        COLORS["ae"],
+        "#1abc9c",
+        "#e67e22"
+    ]
+    bar_colors = [
+        colors[i % len(colors)] for i in range(len(methods))
+    ]
+
+    # Yanlış alarm grafiği
     ax = axes[0]
     ax.set_facecolor("#1a2332")
-    fprs = [float(x) if x != "N/A" else 0 for x in comparison_df["False Positive Rate"]]
-    bars = ax.bar(methods, fprs, color=bar_colors, alpha=0.85, edgecolor="white", linewidth=1.2)
-    ax.set_ylabel("False Positive Rate", color="white", fontsize=12)
-    ax.set_title("Yanlış Alarm Oranı", color="white", fontsize=12)
-    ax.tick_params(colors="white", axis="y")
-    ax.tick_params(colors="white", axis="x", rotation=10)
-    for bar, val in zip(bars, fprs):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.005,
-                f"%{val*100:.1f}", ha="center", color="white", fontsize=12, fontweight="bold")
 
-    # Hedef çizgisi
-    ax.axhline(0.15, color="lime", ls="--", lw=1.5, alpha=0.7, label="Hedef FPR < %15")
+    fprs = plot_df["fpr"].fillna(0).tolist()
+
+    bars = ax.bar(
+        methods, fprs,
+        color=bar_colors,
+        edgecolor="white",
+        alpha=0.85
+    )
+
+    ax.set_title("Yanlış Alarm Oranı", color="white")
+    ax.set_ylabel("False Positive Rate", color="white")
+    ax.tick_params(colors="white", axis="both", rotation=15)
+
+    for bar, value in zip(bars, fprs):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.002,
+            f"%{value * 100:.2f}",
+            ha="center", color="white"
+        )
+
+    ax.axhline(
+        0.15, color="lime", linestyle="--",
+        label="Hedef FPR < %15"
+    )
     ax.legend(facecolor="#1a2332", labelcolor="white")
 
-    # (2) F1-Score karşılaştırma
+    # F1 grafiği
     ax = axes[1]
     ax.set_facecolor("#1a2332")
-    f1s = [float(x) if x != "N/A" else 0 for x in comparison_df["F1-Score"]]
-    bars2 = ax.bar(methods, f1s, color=bar_colors, alpha=0.85, edgecolor="white", linewidth=1.2)
-    ax.set_ylabel("F1-Score", color="white", fontsize=12)
-    ax.set_title("Tespit Başarısı (F1-Score)", color="white", fontsize=12)
-    ax.tick_params(colors="white", axis="y")
-    ax.tick_params(colors="white", axis="x", rotation=10)
-    for bar, val in zip(bars2, f1s):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.005,
-                f"{val:.3f}", ha="center", color="white", fontsize=12, fontweight="bold")
+
+    f1s = plot_df["f1"].fillna(0).tolist()
+
+    bars = ax.bar(
+        methods, f1s,
+        color=bar_colors,
+        edgecolor="white",
+        alpha=0.85
+    )
+
+    ax.set_title("F1-Score Karşılaştırması", color="white")
+    ax.set_ylabel("F1-Score", color="white")
+    ax.tick_params(colors="white", axis="both", rotation=15)
+
+    for bar, value in zip(bars, f1s):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.003,
+            f"{value:.3f}",
+            ha="center", color="white"
+        )
 
     plt.tight_layout()
     return _save(fig, "05_false_positive_comparison.png")
@@ -322,38 +398,99 @@ def plot_user_risk_heatmap(profiles: pd.DataFrame) -> str:
 # ─────────────────────────────────────────────────────────────
 # 8. Autoencoder Eğitim Grafiği
 # ─────────────────────────────────────────────────────────────
+
 def plot_training_history(history) -> str:
     if history is None:
         return ""
-    
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5), facecolor="#0f1923")
-    fig.suptitle("Autoencoder Eğitim Süreci", color="white", fontsize=14, fontweight="bold")
+
+    # NumPy Autoencoder geçmişi sözlük formatındadır.
+    # Keras geçmiş nesnesi gelirse de destekle.
+    if hasattr(history, "history"):
+        history = history.history
+
+    if not isinstance(history, dict):
+        raise TypeError(
+            "history bir sözlük veya Keras History nesnesi olmalıdır."
+        )
+
+    if "loss" not in history:
+        print("[!] Eğitim geçmişinde 'loss' bulunamadı.")
+        return ""
+
+    fig, axes = plt.subplots(
+        1, 2,
+        figsize=(14, 5),
+        facecolor="#0f1923"
+    )
+
+    fig.suptitle(
+        "Autoencoder Eğitim Süreci",
+        color="white",
+        fontsize=14,
+        fontweight="bold"
+    )
 
     for ax in axes:
         ax.set_facecolor("#1a2332")
         for spine in ax.spines.values():
             spine.set_color("#2d3f55")
 
-    # Loss
-    axes[0].plot(history.history["loss"], color=COLORS["ae"], lw=2, label="Train Loss")
-    if "val_loss" in history.history:
-        axes[0].plot(history.history["val_loss"], color=COLORS["rule"], lw=2, label="Val Loss")
+    # Loss grafiği
+    axes[0].plot(
+        history["loss"],
+        color=COLORS["ae"],
+        lw=2,
+        label="Train Loss"
+    )
+
+    if "val_loss" in history:
+        axes[0].plot(
+            history["val_loss"],
+            color=COLORS["rule"],
+            lw=2,
+            label="Val Loss"
+        )
+
     axes[0].set_title("MSE Kaybı", color="white")
     axes[0].set_xlabel("Epoch", color="white")
     axes[0].set_ylabel("MSE", color="white")
     axes[0].tick_params(colors="white")
-    axes[0].legend(facecolor="#1a2332", labelcolor="white")
+    axes[0].legend(
+        facecolor="#1a2332",
+        labelcolor="white"
+    )
 
-    # MAE
-    if "mae" in history.history:
-        axes[1].plot(history.history["mae"], color=COLORS["ae"], lw=2, label="Train MAE")
-        if "val_mae" in history.history:
-            axes[1].plot(history.history["val_mae"], color=COLORS["rule"], lw=2, label="Val MAE")
-        axes[1].set_title("Ortalama Mutlak Hata (MAE)", color="white")
+    # MAE grafiği
+    if "mae" in history:
+        axes[1].plot(
+            history["mae"],
+            color=COLORS["ae"],
+            lw=2,
+            label="Train MAE"
+        )
+
+        if "val_mae" in history:
+            axes[1].plot(
+                history["val_mae"],
+                color=COLORS["rule"],
+                lw=2,
+                label="Val MAE"
+            )
+
+        axes[1].set_title(
+            "Ortalama Mutlak Hata (MAE)",
+            color="white"
+        )
         axes[1].set_xlabel("Epoch", color="white")
         axes[1].set_ylabel("MAE", color="white")
         axes[1].tick_params(colors="white")
-        axes[1].legend(facecolor="#1a2332", labelcolor="white")
+        axes[1].legend(
+            facecolor="#1a2332",
+            labelcolor="white"
+        )
+    else:
+        axes[1].set_visible(False)
 
     plt.tight_layout()
+
     return _save(fig, "08_autoencoder_training.png")

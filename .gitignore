@@ -47,3 +47,13 @@ desktop.ini
 
 # Logs
 *.log
+
+# Generated outputs and backups
+results/
+*.bak
+*_backup.py
+*.pkl
+
+# Local environment and secrets
+.env
+.env.*
