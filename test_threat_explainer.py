@@ -1,60 +1,71 @@
 
+from unittest.mock import patch
+
 from src.risk_engine import RiskEngine
 from src.threat_explainer import ThreatExplainer
 
 
-# 1. Örnek tehdit verisi
-sample_threat = {
-    "user_id": "USER_042",
-    "failed_logins": 12,
-    "hour_of_day": 3,
-    "data_volume_mb": 850,
-    "unique_resources": 28,
-    "detected_by": [
-        "Isolation Forest",
-        "Autoencoder",
-        "Hybrid",
-        "LSTM"
-    ]
-}
+def sample_threat():
+    return {
+        "user_id": "USER_042",
+        "failed_logins": 12,
+        "hour_of_day": 3,
+        "data_volume_mb": 850,
+        "unique_resources": 28,
+        "detected_by": [
+            "Isolation Forest",
+            "Autoencoder",
+            "Hybrid",
+            "LSTM"
+        ]
+    }
 
 
-# 2. Python risk motoru
-risk_engine = RiskEngine()
-risk_result = risk_engine.evaluate(sample_threat)
+def test_risk_engine_and_explainer_initialization():
+    engine = RiskEngine()
+    explainer = ThreatExplainer()
 
-print("\n===== PYTHON RİSK DEĞERLENDİRMESİ =====")
-print("Risk puanı:", risk_result["risk_score"], "/ 100")
-print("Risk seviyesi:", risk_result["risk_level"])
+    assert engine is not None
+    assert explainer is not None
 
 
-# 3. Yerel LLM açıklaması
-explainer = ThreatExplainer()
+def test_explainer_returns_expected_fields():
+    threat = sample_threat()
+    risk_result = RiskEngine().evaluate(threat)
 
-try:
-    explanation = explainer.explain_threat(
-        sample_threat,
-        risk_result
-    )
+    mocked_response = {
+        "summary": "Şüpheli kullanıcı davranışı tespit edildi.",
+        "recommended_actions": [
+            "Kullanıcı hesabını inceleyin."
+        ],
+        "confidence_note": "Sentetik veri üzerinde oluşturulmuştur."
+    }
 
-    print("\n===== YAPAY ZEKA TEHDİT RAPORU =====")
+    with patch.object(
+        ThreatExplainer,
+        "explain_threat",
+        return_value={
+            **risk_result,
+            **mocked_response
+        }
+    ) as mocked_explain:
 
-    print("Risk puanı:", explanation["risk_score"])
-    print("Risk seviyesi:", explanation["risk_level"])
+        explainer = ThreatExplainer()
+        result = explainer.explain_threat(threat, risk_result)
 
-    print("\nOlay özeti:")
-    print(explanation["summary"])
+        assert "risk_score" in result
+        assert "risk_level" in result
+        assert "summary" in result
+        assert "evidence" in result
+        assert "recommended_actions" in result
+        assert "confidence_note" in result
 
-    print("\nTespit edilen bulgular:")
-    for item in explanation["evidence"]:
-        print("-", item)
+        mocked_explain.assert_called_once()
 
-    print("\nÖnerilen güvenlik önlemleri:")
-    for action in explanation["recommended_actions"]:
-        print("-", action)
 
-    print("\nGüvenilirlik notu:")
-    print(explanation["confidence_note"])
+def test_risk_result_is_preserved():
+    threat = sample_threat()
+    risk_result = RiskEngine().evaluate(threat)
 
-except Exception as error:
-    print("\nTehdit analizi başarısız:", error)
+    assert 0 <= risk_result["risk_score"] <= 100
+    assert isinstance(risk_result["evidence"], list)
