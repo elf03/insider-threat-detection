@@ -1,188 +1,166 @@
-# 🛡️ Kullanıcı Davranış Analizi ile Yapay Zeka Destekli İç Tehdit Tespiti
+# Yapay Zekâ Destekli İç Tehdit Tespit Sistemi
 
-> **Yapay Zeka ve Siber Güvenlik Dersi — Proje 7**
+Kullanıcı davranışlarını analiz ederek olağan dışı aktiviteleri ve potansiyel iç tehditleri tespit etmek amacıyla geliştirilmiş, yapay zekâ destekli bir siber güvenlik projesidir.
 
----
+Sistem; birden fazla makine öğrenmesi modeli, risk değerlendirme mekanizması ve Büyük Dil Modeli (LLM) destekli tehdit açıklama modülünü bir araya getirir.
 
-## 📋 Proje Özeti
+Proje kapsamında özel olarak oluşturulmuş sentetik kullanıcı davranış verileri kullanılmaktadır.
 
-Kurum içi veri sızıntıları ve yetki istismarları (örneğin iç tehditler gibi) dışarıdan gelen saldırılardan çok daha zor tespit edilmektedir. Bu projede; kullanıcıların sisteme **giriş saatleri**, **dosya erişimleri** ve **veri aktarım boyutları** gibi günlük aktiviteleri bir zaman serisi olarak ele alınmaktadır.
+## Projenin Amacı ve Özellikleri
 
-**Isolation Forest** ve **Autoencoder** gibi anomali tespit algoritmalarını kullanarak, ele geçirilmiş hesapları veya kötü niyetli çalışanları tespit eden bir **Kullanıcı Davranış Analizi (UBA)** sistemi tasarlanmıştır.
+Sistem, kullanıcı davranış kayıtlarını analiz ederek şüpheli aktiviteleri belirlemeyi ve olası iç tehditleri tespit etmeyi amaçlamaktadır.
 
----
+Başlıca özellikler:
 
-## 📊 Kullanılan Veri Seti
+- Kullanıcı davranış verilerinin ön işlenmesi ve analizi
+- Isolation Forest ile anomali tespiti
+- Autoencoder tabanlı anomali tespiti
+- Isolation Forest ve Autoencoder modellerini birleştiren Hybrid tespit sistemi
+- LSTM tabanlı zamansal anomali tespiti
+- Risk puanlama ve tehdit önceliklendirme mekanizması
+- Ollama üzerinden yerel LLM destekli tehdit açıklamaları
+- Etkileşimli web paneli (Dashboard)
+- Modellerin performans karşılaştırması
+- Tehdit raporlarının oluşturulması
+- Risk puanlama ve tehdit açıklama modülleri için birim testleri
 
-**Synthetic Financial Datasets For Fraud Detection (PaySim)**  
-🔗 https://www.kaggle.com/datasets/ealaxi/paysim1/data
+## Sistem Mimarisi
 
-| PaySim Sütunu | Kullanıcı Davranış Karşılığı |
-|---|---|
-| `step` | Zaman adımı (saat cinsinden, 1-744) |
-| `amount` | Veri aktarım boyutu (MB) |
-| `type` | Aktivite türü (LOGIN, FILE_ACCESS, DATA_TRANSFER...) |
-| `nameOrig` | Kullanıcı ID |
-| `isFraud` | Anomali etiketi (0=normal, 1=iç tehdit) |
+Sistem aşağıdaki aşamalardan oluşmaktadır:
 
-PaySim veri seti, gerçek dünya finansal işlem paternlerini taklit eden sentetik bir veri setidir. Bu projede kurumsal kullanıcı davranış verisine dönüştürülmüştür.
+1. **Veri Üretimi:** Sentetik kullanıcı davranış kayıtları oluşturulur.
+2. **Veri Ön İşleme:** Veriler temizlenir, dönüştürülür ve kronolojik olarak eğitim ve test kümelerine ayrılır.
+3. **Anomali Tespiti:** Isolation Forest, Autoencoder, Hybrid ve LSTM modelleri çalıştırılır.
+4. **Model Değerlendirme:** Modeller Precision, Recall, F1-score, ROC-AUC ve False Positive Rate metrikleriyle karşılaştırılır.
+5. **Risk Motoru:** Tespit edilen şüpheli davranışlara göre risk puanları hesaplanır.
+6. **Tehdit Açıklama:** Yerel Ollama LLM modeli kullanılarak tespit edilen tehditler anlaşılır bir dille açıklanır.
+7. **Dashboard:** Model performansları, kullanıcı risk seviyeleri, aktivite eğilimleri ve tehdit raporları görselleştirilir.
 
----
+## Kullanılan Teknolojiler
 
-## 🏗️ Proje Yapısı
+- Python
+- NumPy
+- Pandas
+- Scikit-learn
+- Matplotlib
+- Ollama
+- HTML
+- CSS
+- JavaScript
+- Pytest
 
-```
+## Proje Dosya Yapısı
+
+```text
 insider-threat-detection/
-├── main.py                        ← Ana pipeline (tüm adımları çalıştırır)
-├── generate_sample_data.py        ← PaySim tabanlı sentetik veri üretici
-├── requirements.txt               ← Python bağımlılıkları
-├── src/
-│   ├── data_preprocessing.py      ← Özellik mühendisliği & normalizasyon
-│   ├── isolation_forest.py        ← Isolation Forest modeli
-│   ├── autoencoder.py             ← Autoencoder modeli (TensorFlow/Keras)
-│   ├── evaluation.py              ← Model karşılaştırma & FP analizi
-│   └── visualization.py           ← Matplotlib grafikleri
+│
 ├── dashboard/
-│   ├── index.html                 ← Web dashboard
-│   ├── style.css                  ← Dark tema CSS
-│   └── app.js                     ← Chart.js interaktif grafikler
-├── data/
-│   └── user_behavior_logs.csv     ← Üretilen veri (main.py sonrası)
-└── results/
-    ├── anomaly_scores.csv         ← Model tahminleri
-    ├── model_comparison.csv       ← Karşılaştırma tablosu
-    ├── isolation_forest_model.pkl ← IF modeli
-    ├── autoencoder_model.keras    ← Autoencoder modeli
-    └── plots/                     ← Üretilen grafikler (8 adet)
+│   ├── index.html
+│   ├── app.js
+│   ├── style.css
+│   └── data.json
+│
+├── src/
+│   ├── autoencoder.py
+│   ├── data_preprocessing.py
+│   ├── evaluation.py
+│   ├── hybrid_detector.py
+│   ├── isolation_forest.py
+│   ├── lstm_detector.py
+│   ├── risk_engine.py
+│   ├── threat_explainer.py
+│   └── visualization.py
+│
+├── main.py
+├── requirements.txt
+├── test_risk_engine.py
+├── test_threat_explainer.py
+└── README.md
 ```
 
----
+## Kurulum
 
-## ⚙️ Kurulum ve Çalıştırma
+Öncelikle GitHub deposunu bilgisayarınıza klonlayın:
 
-### 1. Bağımlılıkları Yükle
+```bash
+git clone https://github.com/elf03/insider-threat-detection.git
+cd insider-threat-detection
+```
+
+Python sanal ortamı oluşturun:
+
+```bash
+python -m venv venv
+```
+
+Windows PowerShell üzerinden sanal ortamı etkinleştirin:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Gerekli kütüphaneleri yükleyin:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Pipeline'ı Çalıştır
+## Projenin Çalıştırılması
+
+Ana uygulamayı çalıştırmak için:
 
 ```bash
 python main.py
 ```
 
-**Pipeline adımları:**
-1. Sentetik kullanıcı davranış verisi üretimi (PaySim tabanlı)
-2. Veri görselleştirmesi
-3. Özellik mühendisliği ve normalizasyon
-4. Isolation Forest eğitimi ve değerlendirme
-5. Autoencoder eğitimi ve değerlendirme
-6. Karşılaştırmalı değerlendirme (Kural tabanlı vs. AI)
-7. Grafiklerin oluşturulması
+Bu komut veri hazırlama, model eğitimi, anomali tespiti, model değerlendirme, risk analizi, tehdit raporlarının oluşturulması ve Dashboard verilerinin hazırlanması aşamalarını yürütür.
 
-### 3. Web Dashboard'ı Aç
+## Dashboard'un Çalıştırılması
 
-`main.py` çalıştıktan sonra `dashboard/index.html` dosyasını tarayıcıda açın.
+Proje ana dizinindeyken aşağıdaki komutu çalıştırın:
 
----
-
-## 🤖 Kullanılan Modeller
-
-### Isolation Forest
-```
-Parametreler:
-  n_estimators=200     (200 ağaç)
-  contamination=0.02   (beklenen anomali oranı %2)
-  max_samples="auto"   (otomatik örnekleme)
-
-Çalışma prensibi:
-  Anomaliler normal gözlemlerden daha az bölme gerektirir.
-  "İzole etme" sayısı az → Anomali
+```bash
+python -m http.server 8000 --directory dashboard
 ```
 
-### Autoencoder (TensorFlow/Keras)
-```
-Mimari: Encoder-Decoder
-  Encoder: 13 → 64 → 32 → 16 (latent space)
-  Decoder: 16 → 32 → 64 → 13
-  
-Kayıp: MSE (Mean Squared Error)
-Anomali kriteri: Reconstruction Error > threshold (P95)
+Ardından tarayıcıdan aşağıdaki adrese gidin:
 
-Çalışma prensibi:
-  Normal veriler düşük yeniden yapılandırma hatası üretir.
-  Anomaliler (normal profile uymayan) yüksek hata üretir → Tespit
+```text
+http://localhost:8000
 ```
 
----
+Dashboard üzerinden model performanslarını, riskli kullanıcıları, aktivite grafiklerini ve oluşturulan tehdit raporlarını inceleyebilirsiniz.
 
-## 🏷️ Özellik Mühendisliği
+## Testlerin Çalıştırılması
 
-| Özellik | Açıklama |
+Projedeki testleri çalıştırmak için:
+
+```bash
+python -m pytest -v
+```
+
+## Model Değerlendirme Metrikleri
+
+Sistemdeki modeller aşağıdaki performans metrikleri kullanılarak değerlendirilir:
+
+| Metrik | Açıklama |
 |---|---|
-| `data_volume_mb` | Ham veri transfer hacmi |
-| `hour_of_day` | Günün saati (0-23) |
-| `is_working_hours` | Mesai saatinde mi? (1/0) |
-| `failed_logins` | Başarısız giriş denemesi sayısı |
-| `unique_resources` | Erişilen kaynak sayısı |
-| `volume_zscore` | **Kullanıcı bazında z-score** (normal profilden sapma) |
-| `off_hours_volume` | Mesai dışı veri transfer hacmi |
-| `login_failure_rate` | Başarısız giriş/kaynak oranı |
-| `resource_intensity` | Kaynak erişim yoğunluğu |
-| `balance_drop_ratio` | Aktivite skoru değişim oranı |
+| Precision | Tespit edilen tehditlerin ne kadarının gerçekten tehdit olduğunu gösterir. |
+| Recall | Gerçek tehditlerin ne kadarının tespit edildiğini gösterir. |
+| F1-score | Precision ve Recall değerlerinin harmonik ortalamasıdır. |
+| ROC-AUC | Modelin sınıfları ayırt etme başarısını ölçer. |
+| False Positive Rate (FPR) | Normal davranışların yanlışlıkla tehdit olarak sınıflandırılma oranıdır. |
 
----
+Model sonuçları, proje kapsamında oluşturulan sentetik test veri kümesine dayanmaktadır. Bu sonuçlar gerçek ortamlardaki performansın garantisi olarak değerlendirilmemelidir.
 
-## 📈 Üretilen Grafikler
+## LLM Entegrasyonu
 
-| # | Dosya | İçerik |
-|---|---|---|
-| 1 | `01_data_distribution.png` | Veri dağılımı (pasta, histogram, saatlik) |
-| 2 | `02_roc_curves.png` | ROC-AUC eğrisi karşılaştırması |
-| 3 | `03_precision_recall.png` | Precision-Recall eğrisi |
-| 4 | `04_confusion_matrices.png` | Confusion matrix (IF + AE) |
-| 5 | `05_false_positive_comparison.png` | **FP karşılaştırması (Kongre odak)** |
-| 6 | `06_anomaly_timeline.png` | Anomali skor zaman serisi |
-| 7 | `07_user_risk_heatmap.png` | Kullanıcı risk profili haritası |
-| 8 | `08_autoencoder_training.png` | Autoencoder eğitim süreci |
+Tehdit açıklama modülünde yerel olarak çalışan Ollama modeli kullanılmaktadır.
 
----
+LLM, tespit edilen şüpheli aktiviteleri analiz ederek anlaşılır açıklamalar ve güvenlik analistlerine yardımcı olabilecek değerlendirmeler üretir.
 
-## 🎯 Beklenen Sonuçlar
+LLM açıklama modülü, deterministik çalışan risk puanlama motorunu destekler; onun yerine geçmez.
 
-### ✅ Normal Çalışan Profili Öğrenme
-Her kullanıcının bireysel davranış profili çıkarılır. Giriş saatleri, transfer boyutları ve kaynak erişim paternleri referans profil olarak öğrenilir.
+## Projenin Sınırları
 
-### ✅ Nadir Sızıntı Paternlerinin Yüksek Doğrulukla Saptanması
-3 farklı iç tehdit senaryosu tespit edilir:
-- **DATA_EXFILTRATION** — Gece büyük veri transferleri
-- **PRIVILEGE_ABUSE** — Yetkisiz kaynak erişimleri
-- **CREDENTIAL_THEFT** — Çoklu başarısız giriş denemeleri
-
-### ✅ Kongre Bildirisi Odak Noktası
-> *"Kurumsal ağlarda kural tabanlı alarm sistemlerinin ürettiği 'False Positive' (yanlış pozitif) yorgunluğunun, yapay zeka tabanlı davranışsal anomali tespiti ile nasıl azaltılabileceği"*
-
-| Yöntem | False Positive Rate |
-|---|---|
-| Kural Tabanlı (SIEM) | ~%60-70 |
-| Isolation Forest (AI) | ~%8-12 |
-| Autoencoder (AI) | ~%6-10 |
-
----
-
-## 📚 Referanslar
-
-1. Liu, F.T., Ting, K.M., Zhou, Z.H. (2008). *Isolation Forest*. ICDM 2008.
-2. Hinton, G.E., Salakhutdinov, R.R. (2006). *Reducing the dimensionality of data with neural networks*. Science.
-3. Lopez-Rojas, E.A. (2016). *PaySim: A Financial Mobile Money Simulator for Fraud Detection*. EMSS 2016.
-4. Chandola, V., Banerjee, A., Kumar, V. (2009). *Anomaly detection: A survey*. ACM Computing Surveys.
-
----
-
-## 👥 Proje Bilgileri
-
-- **Ders:** Yapay Zeka ve Siber Güvenlik
-- **Konu:** Kullanıcı Davranış Analizi ile İç Tehdit Tespiti
-- **Veri Seti:** Synthetic Financial Datasets For Fraud Detection (PaySim)
-- **Algoritmalar:** Isolation Forest, Autoencoder
+Bu proje eğitim ve araştırma amacıyla geliştirilmiştir. Sentetik kullanıcı davranış verileri kullanmaktadır ve doğrudan kurumsal ortamlarda kullanılabilecek üretim seviyesinde bir güvenlik izleme sistemi olarak değerlendirilmemelidir.
